@@ -1,29 +1,35 @@
 #include <Ultrasonic.h>
 
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+#include <Wire.h>
+
+Adafruit_MPU6050 mpu;
+
 // Left color sensor
-#define LS3 14
-#define LS2 15
-#define LOUT 22
-#define LS0 23
-#define LS1 18
+#define LS0 14 
+#define LS1 15 
+#define LS2 16
+#define LS3 17
+#define LOUT 18
 
 // Right color sensor
-#define RS3 19
-#define RS2 20
-#define ROUT 21
-#define RS0 17
-#define RS1 16
+#define RS3 13
+#define RS2 12
+#define ROUT 11
+#define RS0 30
+#define RS1 31
 
 #define ena 5
 #define in1 6
 #define in2 7
-#define in3 9
-#define in4 10
-#define enb 11
+#define in3 8
+#define in4 9
+#define enb 10
 
-#define LS 4
+#define LS 2
 #define MS 3
-#define RS 2
+#define RS 4
 
 #define front_trigPin 40
 #define front_echoPin 41
@@ -45,32 +51,100 @@ int RgreenFrequency = 0;
 
 int speed=255;
 int slowSpeed=190;
-int leftSpeed = 0;
-int rightSpeed = 0;
+
+int leftSpeed = 155;
+int rightSpeed = 155;
 
 int lastFunction = 0;
+
 
 const int ledPin = LED_BUILTIN;  
 int isOn = false;  
 unsigned long previousMillis = 0; 
 
-const long intervalOn = 15;
-const long intervalOff = 35;  
+const long intervalOn = 30;
+const long intervalOff = 120;  
 
+bool lookingUp = false
 
 void setup()
 {
-  pinMode(LS0, OUTPUT);
-  pinMode(LS1, OUTPUT);
-  pinMode(RS0, OUTPUT);
-  pinMode(RS1, OUTPUT);
+ Serial.begin(115200);
+  while (!Serial)
+    delay(10); // will pause Zero, Leonardo, etc until serial console opens
 
-  digitalWrite(LS0, HIGH);
-  digitalWrite(LS1, LOW);
+  Serial.println("Adafruit MPU6050 test!");
 
-  digitalWrite(RS0, HIGH);
-  digitalWrite(RS1, LOW);
+  // Try to initialize!
+  if (!mpu.begin()) {
+    Serial.println("Failed to find MPU6050 chip");
+    while (1) {
+      delay(10);
+    }
+  }
+  Serial.println("MPU6050 Found!");
 
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+  Serial.print("Accelerometer range set to: ");
+  switch (mpu.getAccelerometerRange()) {
+  case MPU6050_RANGE_2_G:
+    Serial.println("+-2G");
+    break;
+  case MPU6050_RANGE_4_G:
+    Serial.println("+-4G");
+    break;
+  case MPU6050_RANGE_8_G:
+    Serial.println("+-8G");
+    break;
+  case MPU6050_RANGE_16_G:
+    Serial.println("+-16G");
+    break;
+  }
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  Serial.print("Gyro range set to: ");
+  switch (mpu.getGyroRange()) {
+  case MPU6050_RANGE_250_DEG:
+    Serial.println("+- 250 deg/s");
+    break;
+  case MPU6050_RANGE_500_DEG:
+    Serial.println("+- 500 deg/s");
+    break;
+  case MPU6050_RANGE_1000_DEG:
+    Serial.println("+- 1000 deg/s");
+    break;
+  case MPU6050_RANGE_2000_DEG:
+    Serial.println("+- 2000 deg/s");
+    break;
+  }
+
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  Serial.print("Filter bandwidth set to: ");
+  switch (mpu.getFilterBandwidth()) {
+  case MPU6050_BAND_260_HZ:
+    Serial.println("260 Hz");
+    break;
+  case MPU6050_BAND_184_HZ:
+    Serial.println("184 Hz");
+    break;
+  case MPU6050_BAND_94_HZ:
+    Serial.println("94 Hz");
+    break;
+  case MPU6050_BAND_44_HZ:
+    Serial.println("44 Hz");
+    break;
+  case MPU6050_BAND_21_HZ:
+    Serial.println("21 Hz");
+    break;
+  case MPU6050_BAND_10_HZ:
+    Serial.println("10 Hz");
+    break;
+  case MPU6050_BAND_5_HZ:
+    Serial.println("5 Hz");
+    break;
+  }
+  Serial.println("");
+  delay(100);
+ 
   // put your setup code here, to run once:
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
@@ -93,10 +167,17 @@ void forward()
 {
 
   // Serial.print("forward");
-
- leftSpeed = speed;
- rightSpeed = speed;
-
+  if (lookingUp == true)
+  {
+    analogWrite(ena, 255)
+    analogWrite(enb, 255)
+  }
+  else
+  {
+    leftSpeed = speed-50;
+    rightSpeed = speed;
+  }
+  
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH);
 
@@ -105,14 +186,34 @@ void forward()
   
   lastFunction = 0;
 
-
+ Serial.print("forward");
 }
 
-void sharp_right()
+void spin()
+{
+
+  // Serial.print("forward");
+
+  analogWrite(ena, 255);
+  analogWrite(enb, 0);
+
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+  
+  lastFunction = 3;
+
+ Serial.print("SPIN");
+}
+
+
+void sharp_left()
 {
 
   // Serial.print("sharp right");
- leftSpeed = min(speed + 105, 255);
+ leftSpeed = speed - 130;
  rightSpeed = speed;
 
 
@@ -121,6 +222,21 @@ void sharp_right()
 
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
+}
+
+void sharp_right()
+{
+
+  // Serial.print("sharp right");
+ leftSpeed = speed;
+ rightSpeed = speed - 130;
+
+
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
+
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
 }
 
 void right()
@@ -225,26 +341,58 @@ void obstacle()
 void loop()
 {
 
- 
+  /* Get new sensor events with the readings */
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
 
 
-  if (digitalRead(LS) == HIGH && digitalRead(MS) == LOW && digitalRead(RS) == HIGH)
-  {
-    forward();
-    digitalWrite(LED_PIN, HIGH);
+  Serial.print(" Y: ");
+  Serial.print(a.acceleration.y);
+  int AccY=a.acceleration.y;
+  if(AccY>2){
+     Serial.println("  UP");
+  lookingUp - true
+  }
+  else{
+     Serial.println("  DOWN");
+  lookingUp - false
+
+  if (digitalRead(LS) == HIGH && di0
   }
 
   if (digitalRead(LS) == HIGH && digitalRead(RS) == LOW)
   {
-    right();
+    if (digitalRead(MS) == LOW)
+    {
+      sharp_right();
+    }
+    else
+    {
+      right(); 
+    }
   }
+
+ if (digitalRead(LS) == HIGH && digitalRead(MS) == HIGH && digitalRead(RS) == HIGH)
+    {
+      forward();
+    }
 
   if (digitalRead(LS) == LOW && digitalRead(RS) == HIGH)
   {
-    left();
+    if (digitalRead(MS) == LOW)
+    {
+     sharp_left();
+    }
+    else
+    {
+      left(); 
+    }
+
   }
+
   if (digitalRead(LS) == LOW && digitalRead(MS) == LOW && digitalRead(RS) == LOW)
   {
+
 
    // stop();
     // 2. Read LGreeUn Photodiodes
@@ -263,46 +411,52 @@ void loop()
     Serial.print(RgreenFrequency);
     Serial.println("  ");
 
-    if (RgreenFrequency  > LgreenFrequency && RgreenFrequency > 10)
+    if (LgreenFrequency < 9 && RgreenFrequency > 9)
     {
      Serial.println("right");
      right();
 
-      
     }
-    else if (LgreenFrequency  > RgreenFrequency && LgreenFrequency > 10)
+    else if (LgreenFrequency  > 9 && RgreenFrequency < 9)
     {
-   
      Serial.println("left");
      left();
+
+    }
+     else if (LgreenFrequency  < 9 && RgreenFrequency < 9)
+    {
+     Serial.println("forward");
+     forward();
+     
     }
 
-    if (RgreenFrequency > 25 && RgreenFrequency < 40)
+      else if (LgreenFrequency  > 10 && RgreenFrequency > 10)
     {
-      leftSpeed = speed ;
-      rightSpeed = speed;
+     Serial.println("spin");
+     spin();
+     delay(800);
 
-      digitalWrite(in1, HIGH);
-      digitalWrite(in2, LOW);
-
-      digitalWrite(in3, HIGH);
-      digitalWrite(in4, LOW);
-      delay(1000);
     }
   }
 
-  /*
+
     Serial.print(" ");
     Serial.print(digitalRead(LS));
     Serial.print(" ");
     Serial.print(digitalRead(MS));
     Serial.print(" ");
     Serial.print(digitalRead(RS));
-    Serial.print(" ");
+    Serial.println(" ");
+/*  
     Serial.print(leftSpeed);
     Serial.print(" ");
-    Serial.println(rightSpeed);
+    Serial.println(rightSpeed); 
   */
+
+//put temporary code here:
+//---------------------------
+
+//---------------------------
 
   unsigned long currentMillis = millis();
   if(isOn == false){
@@ -324,6 +478,7 @@ void loop()
 
        
     }
+  
   }
 
 }
