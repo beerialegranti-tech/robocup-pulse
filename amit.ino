@@ -69,7 +69,7 @@ bool lookingUp = false;;
 
 void setup()
 {
- Serial.begin(115200);
+ Serial.begin(9600);
   while (!Serial)
     delay(10); // will pause Zero, Leonardo, etc until serial console opens
 
@@ -142,7 +142,7 @@ void setup()
     Serial.println("5 Hz");
     break;
   }
-  Serial.println("");
+  Serial.print("");
   delay(100);
  
   // put your setup code here, to run once:
@@ -166,7 +166,7 @@ void setup()
 void forward()
 {
 
-  // Serial.print("forward");
+  Serial.print("forward");
   if (lookingUp == true)
   {
     analogWrite(ena, 255);
@@ -185,14 +185,12 @@ void forward()
   digitalWrite(in4, LOW);
   
   lastFunction = 0;
-
- Serial.print("forward");
 }
 
 void spin()
 {
 
-  // Serial.print("forward");
+   Serial.print("spin");
 
   analogWrite(ena, 255);
   analogWrite(enb, 0);
@@ -212,7 +210,7 @@ void spin()
 void sharp_left()
 {
 
-  // Serial.print("sharp right");
+   Serial.print("sharp right");
  leftSpeed = speed - 130;
  rightSpeed = speed;
 
@@ -227,7 +225,7 @@ void sharp_left()
 void sharp_right()
 {
 
-  // Serial.print("sharp right");
+   Serial.print("sharp right");
  leftSpeed = speed;
  rightSpeed = speed - 130;
 
@@ -242,7 +240,7 @@ void sharp_right()
 void right()
 {
 
-  // Serial.print("right");
+   Serial.print("right");
  leftSpeed = speed;
  rightSpeed = 0;
 
@@ -260,7 +258,7 @@ void right()
 void left()
 {
 
-  // Serial.print("left");
+  Serial.print("left");
 
  leftSpeed = 0;
  rightSpeed = speed;
@@ -305,13 +303,13 @@ void obstacle()
     {
       forward();
       digitalWrite(LED_PIN, HIGH);
-      Serial.println(millis());
+      Serial.print(millis());
     }
     else
     {
       object_evation_timer = millis();
       Serial.print(" heheh ");
-      Serial.println(object_evation_timer);
+      Serial.print(object_evation_timer);
 
       distance = ultrasonic_side.read();
       if (distance == 0)
@@ -350,11 +348,11 @@ void loop()
   Serial.print(a.acceleration.y);
   int AccY=a.acceleration.y;
   if(AccY>2){
-     Serial.println("  UP");
+     Serial.print ("  UP" );
   lookingUp - true;
   }
   else{
-     Serial.println("  DOWN");
+     Serial.print("  DOWN ");
   lookingUp - false;
   }
 
@@ -407,23 +405,23 @@ void loop()
     RgreenFrequency = pulseIn(ROUT, LOW, 30000);
     Serial.print("RG= ");
     Serial.print(RgreenFrequency);
-    Serial.println("  ");
+    Serial.print("  ");
 
     if (LgreenFrequency < 9 && RgreenFrequency > 9)
     {
-     Serial.println("right");
+     Serial.print("right");
      right();
 
     }
     else if (LgreenFrequency  > 9 && RgreenFrequency < 9)
     {
-     Serial.println("left");
+     Serial.print("left");
      left();
 
     }
      else if (LgreenFrequency  < 9 && RgreenFrequency < 9)
     {
-     Serial.println("forward");
+     Serial.print("forward");
      forward();
      
     }
@@ -453,7 +451,7 @@ void loop()
 
 //put temporary code here:
 //---------------------------
-forward();
+
 //---------------------------
 
   unsigned long currentMillis = millis();
