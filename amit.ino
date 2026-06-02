@@ -242,7 +242,7 @@ void right()
 
    Serial.print("right");
  leftSpeed = speed;
- rightSpeed = 0;
+ rightSpeed = speed-60;
 
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH);
@@ -260,7 +260,7 @@ void left()
 
   Serial.print("left");
 
- leftSpeed = 0;
+ leftSpeed = speed-60;
  rightSpeed = speed;
 
   digitalWrite(in1, LOW);
@@ -372,7 +372,10 @@ void loop()
     {
       forward();
     }
-
+ if (digitalRead(LS) == HIGH && digitalRead(MS) == LOW && digitalRead(RS) == HIGH)
+    {
+      forward();
+    }
   if (digitalRead(LS) == LOW && digitalRead(RS) == HIGH)
   {
     if (digitalRead(MS) == LOW)
@@ -425,7 +428,7 @@ void loop()
      forward();
      
     }
-
+/*
       else if (LgreenFrequency  > 10 && RgreenFrequency > 10)
     {
      Serial.println("spin");
@@ -433,6 +436,7 @@ void loop()
      delay(800);
 
     }
+  */
   }
 
 
