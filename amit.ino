@@ -65,7 +65,7 @@ unsigned long previousMillis = 0;
 const long intervalOn = 30;
 const long intervalOff = 120;  
 
-bool lookingUp = false
+bool lookingUp = false;;
 
 void setup()
 {
@@ -169,8 +169,8 @@ void forward()
   // Serial.print("forward");
   if (lookingUp == true)
   {
-    analogWrite(ena, 255)
-    analogWrite(enb, 255)
+    analogWrite(ena, 255);
+    analogWrite(enb, 255);
   }
   else
   {
@@ -351,13 +351,11 @@ void loop()
   int AccY=a.acceleration.y;
   if(AccY>2){
      Serial.println("  UP");
-  lookingUp - true
+  lookingUp - true;
   }
   else{
      Serial.println("  DOWN");
-  lookingUp - false
-
-  if (digitalRead(LS) == HIGH && di0
+  lookingUp - false;
   }
 
   if (digitalRead(LS) == HIGH && digitalRead(RS) == LOW)
@@ -455,7 +453,7 @@ void loop()
 
 //put temporary code here:
 //---------------------------
-
+forward();
 //---------------------------
 
   unsigned long currentMillis = millis();
