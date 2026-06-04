@@ -1,25 +1,33 @@
-#include <Ultrasonic.h>
+#include <NewPing.h>
 
-#include <Adafruit_MPU6050.h>
-#include <Adafruit_Sensor.h>
-#include <Wire.h>
+// Pin definitions
+#define LEFT_S0 44
+#define LEFT_S1 45
+#define LEFT_S2 42
+#define LEFT_S3 41
+#define LEFT_sensorOut 43
 
-Adafruit_MPU6050 mpu;
+// Pin definitions
+#define RIGHT_S0 36
+#define RIGHT_S1 37
+#define RIGHT_S2 34
+#define RIGHT_S3 35
+#define RIGHT_sensorOut 33
 
-// Left color sensor
-#define LS0 14 
-#define LS1 15 
-#define LS2 16
-#define LS3 17
-#define LOUT 18
+#define FRONT_TRIGGER_PIN  11  // Arduino pin tied to trigger pin on the ultrasonic sensor.
+#define FRONT_ECHO_PIN     12  // Arduino pin tied to echo pin on the ultrasonic sensor.
+#define MAX_DISTANCE 200 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
 
-// Right color sensor
-#define RS3 13
-#define RS2 12
-#define ROUT 11
-#define RS0 30
-#define RS1 31
 
+#define SIDE_TRIGGER_PIN  52  // Arduino pin tied to trigger pin on the ultrasonic sensor.
+#define SIDE_ECHO_PIN     53  // Arduino pin tied to echo pin on the ultrasonic sensor.
+#define MAX_DISTANCE 200 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
+
+NewPing front_sonar(FRONT_TRIGGER_PIN, FRONT_ECHO_PIN, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
+
+NewPing side_sonar(SIDE_TRIGGER_PIN, SIDE_ECHO_PIN, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
+
+// pins
 #define ena 5
 #define in1 6
 #define in2 7
@@ -27,458 +35,273 @@ Adafruit_MPU6050 mpu;
 #define in4 9
 #define enb 10
 
-#define LS 2
-#define MS 3
-#define RS 4
-
-#define front_trigPin 40
-#define front_echoPin 41
-
-#define side_trigPin 13
-#define side_echoPin 12
-
-#define LED_PIN 8
-
-Ultrasonic ultrasonic_front(front_trigPin, front_echoPin);
-Ultrasonic ultrasonic_side(side_trigPin, side_echoPin);
-
-const int object_detection_distance = 12; // cm
-unsigned long object_evation_timer = 0;
-const int object_evation_time = 200;
-
-int LgreenFrequency = 0;
-int RgreenFrequency = 0;
-
-int speed=255;
-int slowSpeed=190;
-
-int leftSpeed = 155;
-int rightSpeed = 155;
-
-int lastFunction = 0;
+#define leftSensor 4
+#define centerSensor 3
+#define rightSensor 2
 
 
 const int ledPin = LED_BUILTIN;  
-int isOn = false;  
+int ledState = LOW;  
 unsigned long previousMillis = 0; 
+const long intervalOn = 10;
+const long intervalOff = 140;  
+ 
 
-const long intervalOn = 30;
-const long intervalOff = 120;  
+int speed=255;
+int slowSpeed=190;
+int leftSpeed = 0;
+int rightSpeed = 0;
 
-bool lookingUp = false;;
+void setup() {
 
-void setup()
-{
- Serial.begin(9600);
-  while (!Serial)
-    delay(10); // will pause Zero, Leonardo, etc until serial console opens
+  pinMode(LEFT_S0,OUTPUT);    //pin modes
+  pinMode(LEFT_S1,OUTPUT);
+  pinMode(LEFT_S2,OUTPUT);
+  pinMode(LEFT_S3,OUTPUT);
+  pinMode(LEFT_sensorOut ,INPUT);
 
-  Serial.println("Adafruit MPU6050 test!");
-
-  // Try to initialize!
-  if (!mpu.begin()) {
-    Serial.println("Failed to find MPU6050 chip");
-    while (1) {
-      delay(10);
-    }
-  }
-  Serial.println("MPU6050 Found!");
-
-  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-  Serial.print("Accelerometer range set to: ");
-  switch (mpu.getAccelerometerRange()) {
-  case MPU6050_RANGE_2_G:
-    Serial.println("+-2G");
-    break;
-  case MPU6050_RANGE_4_G:
-    Serial.println("+-4G");
-    break;
-  case MPU6050_RANGE_8_G:
-    Serial.println("+-8G");
-    break;
-  case MPU6050_RANGE_16_G:
-    Serial.println("+-16G");
-    break;
-  }
-  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-  Serial.print("Gyro range set to: ");
-  switch (mpu.getGyroRange()) {
-  case MPU6050_RANGE_250_DEG:
-    Serial.println("+- 250 deg/s");
-    break;
-  case MPU6050_RANGE_500_DEG:
-    Serial.println("+- 500 deg/s");
-    break;
-  case MPU6050_RANGE_1000_DEG:
-    Serial.println("+- 1000 deg/s");
-    break;
-  case MPU6050_RANGE_2000_DEG:
-    Serial.println("+- 2000 deg/s");
-    break;
-  }
-
-  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
-  Serial.print("Filter bandwidth set to: ");
-  switch (mpu.getFilterBandwidth()) {
-  case MPU6050_BAND_260_HZ:
-    Serial.println("260 Hz");
-    break;
-  case MPU6050_BAND_184_HZ:
-    Serial.println("184 Hz");
-    break;
-  case MPU6050_BAND_94_HZ:
-    Serial.println("94 Hz");
-    break;
-  case MPU6050_BAND_44_HZ:
-    Serial.println("44 Hz");
-    break;
-  case MPU6050_BAND_21_HZ:
-    Serial.println("21 Hz");
-    break;
-  case MPU6050_BAND_10_HZ:
-    Serial.println("10 Hz");
-    break;
-  case MPU6050_BAND_5_HZ:
-    Serial.println("5 Hz");
-    break;
-  }
-  Serial.print("");
-  delay(100);
+  digitalWrite(LEFT_S0,HIGH);  //Putting S0/S1 on HIGH/HIGH levels means the output frequency scalling is at 100%  (recommended)
+  digitalWrite(LEFT_S1,HIGH); //LOW/LOW is off HIGH/LOW is 20% and  LOW/HIGH is  2%
+  digitalWrite(LEFT_S2,HIGH);
+  digitalWrite(LEFT_S3,HIGH);
+  pinMode(RIGHT_S0,OUTPUT);    //pin modes
+  pinMode(RIGHT_S1,OUTPUT);
+  pinMode(RIGHT_S2,OUTPUT);
+  pinMode(RIGHT_S3,OUTPUT);
+  pinMode(RIGHT_sensorOut ,INPUT);
+  digitalWrite(RIGHT_S0,HIGH);  //Putting S0/S1 on HIGH/HIGH levels means the output frequency scalling is at 100%  (recommended)
+  digitalWrite(RIGHT_S1,HIGH); //LOW/LOW is off HIGH/LOW is 20% and  LOW/HIGH is  2%
+  digitalWrite(RIGHT_S2,HIGH);
+  digitalWrite(RIGHT_S3,HIGH);
  
   // put your setup code here, to run once:
+  pinMode(ena, OUTPUT);
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
-  pinMode(ena, OUTPUT);
-
   pinMode(in3, OUTPUT);
   pinMode(in4, OUTPUT);
   pinMode(enb, OUTPUT);
-  pinMode(LED_PIN, OUTPUT);
 
-  pinMode(LS, INPUT);
-  pinMode(MS, INPUT);
-  pinMode(RS, INPUT);
+  pinMode(leftSensor, INPUT);
+  pinMode(centerSensor, INPUT);
+  pinMode(rightSensor, INPUT);
 
   Serial.begin(9600);
 
 }
 
-void forward()
-{
+void forward() {
+    Serial.print(" forward ");
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
 
-  Serial.print("forward");
-  if (lookingUp == true)
-  {
-    analogWrite(ena, 255);
-    analogWrite(enb, 255);
-  }
-  else
-  {
-    leftSpeed = speed-50;
-    rightSpeed = speed;
-  }
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+
+ leftSpeed = speed;
+ rightSpeed = speed;
+}
+
+void right() {
+  
+    Serial.print(" right ");
   
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH);
 
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
-  
-  lastFunction = 0;
+  leftSpeed = speed;
+ rightSpeed = 0;
 }
 
-void spin()
-{
+void hardright() {
 
-   Serial.print("spin");
-
-  analogWrite(ena, 255);
-  analogWrite(enb, 0);
-
+    Serial.print(" hardright ");
+  
   digitalWrite(in1, HIGH);
   digitalWrite(in2, LOW);
 
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
-  
-  lastFunction = 3;
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
 
- Serial.print("SPIN");
+ leftSpeed = speed;
+ rightSpeed = speed;
 }
 
+void left() {
 
-void sharp_left()
-{
+    Serial.print(" left ");
+  
+   digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
 
-   Serial.print("sharp right");
- leftSpeed = speed - 130;
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+
+ leftSpeed = 0;
  rightSpeed = speed;
 
+}
 
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, LOW);
+
+void hardleft() {
+
+    Serial.print(" hardleft ");
+  
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
 
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
-}
 
-void sharp_right()
-{
-
-   Serial.print("sharp right");
  leftSpeed = speed;
- rightSpeed = speed - 130;
+ rightSpeed = speed;
+}
+void stop() {
 
-
+    Serial.print(" stop ");
+  
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH);
 
   digitalWrite(in3, LOW);
   digitalWrite(in4, HIGH);
+
+    
+ leftSpeed = 0;
+ rightSpeed = 0;
+
 }
 
-void right()
-{
+void loop() {
+  //forward();
+  //return;
+  delay(50);                     // Wait 50ms between pings (about 20 pings/sec). 29ms should be the shortest delay between pings.
+  int front_distance = front_sonar.ping_cm();
+  Serial.print("front_distance: ");
+  Serial.print(front_distance); // Send ping, get distance in cm and print result (0 = outside set distance range)
+  Serial.print("cm ");
 
-   Serial.print("right");
- leftSpeed = speed;
- rightSpeed = speed-60;
+  if (front_distance > 0 && front_distance < 15)
+  {
 
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
+    stop();
+    delay(50);
 
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
+    int side_distance = side_sonar.ping_cm();
+    Serial.print("side_distance: ");
+    Serial.print(side_distance); // Send ping, get distance in cm and print result (0 = outside set distance range)
+    Serial.println("cm");
 
- lastFunction = 1;
+    while (side_distance == 0 || side_distance > 15) {
+      //  while(true){
+      delay(50);
+      side_distance = side_sonar.ping_cm();
+      hardright();
+      Serial.print("side_distance: 111 ");
+      Serial.print(side_distance); // Send ping, get distance in cm and print result (0 = outside set distance range)
+      Serial.println("cm");
+    }
+    while (digitalRead(centerSensor) == HIGH) {
+      while (side_distance > 0 && side_distance < 75 && digitalRead(centerSensor) == HIGH) {
+        //  while(true){
+        delay(50);
+        side_distance = side_sonar.ping_cm();
+        forward();
+        Serial.print("side_distance: 222 ");
+        Serial.print(side_distance); // Send ping, get distance in cm and print result (0 = outside set distance range)
+        Serial.println("cm");
+      }
+      while (side_distance == 0 || side_distance > 75 && digitalRead(centerSensor) == HIGH) {
+        //  while(true){
+        delay(50);
+        side_distance = side_sonar.ping_cm();
+        hardright();
+        Serial.print("side_distance: ");
+        Serial.print(side_distance); // Send ping, get distance in cm and print result (0 = outside set distance range)
+        Serial.println("cm");
+      }
 
+    }
+    Serial.println("stop");
+  }
+  
+  Serial.print(digitalRead(leftSensor));
+  Serial.print("\t");
+  Serial.print(digitalRead(centerSensor));
+  Serial.print("\t");
+  Serial.print(digitalRead(rightSensor));
+
+  if (digitalRead(leftSensor) == LOW && digitalRead(centerSensor) == HIGH && digitalRead(rightSensor) == HIGH)
+  {
+    left();
+  }
+  else if (digitalRead(leftSensor) == HIGH && digitalRead(centerSensor) == HIGH && digitalRead(rightSensor) == LOW)
+  {
+    right();
+  }
+  else if (digitalRead(leftSensor) == HIGH && digitalRead(centerSensor) == LOW && digitalRead(rightSensor) == LOW)
+  {
+    hardright();
+
+  }
+  else if (digitalRead(leftSensor) == HIGH && digitalRead(centerSensor) == LOW && digitalRead(rightSensor) == HIGH)
+  {
+    forward();
+
+  }
+  else if (digitalRead(leftSensor) == LOW && digitalRead(centerSensor) == LOW && digitalRead(rightSensor) == HIGH)
+  {
+    hardright();
+
+  }
+    else if (digitalRead(leftSensor) == LOW && digitalRead(centerSensor) == LOW && digitalRead(rightSensor) == LOW )
+  {
+   stop();
  
-}
+   Serial.print(" right  green = ");
+   int  right_data=pulseIn( RIGHT_sensorOut ,LOW);       //here  we wait until "out" go LOW, we start measuring the 
+   Serial.print(right_data);
 
-void left()
-{
-
-  Serial.print("left");
-
- leftSpeed = speed-60;
- rightSpeed = speed;
-
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
-
-lastFunction = 2;
-
-
-}
-
-void stop()
-{
-  analogWrite(ena, 0);
-  analogWrite(enb, 0);
-}
-
-void obstacle()
-{
-  digitalWrite(LED_PIN, HIGH);
-  stop();
-  delay(1000);
-
-  int distance = 357;
-
-  left();
-  ;
-  distance = ultrasonic_side.read();
-  if (distance == 0)
-  {
-    distance = 357;
-  }
-
-  distance = 357;
-  while (digitalRead(LS) == HIGH && digitalRead(MS) == HIGH && digitalRead(RS) == HIGH)
-  {
-    if (millis() < object_evation_timer + object_evation_time)
-    {
-      forward();
-      digitalWrite(LED_PIN, HIGH);
-      Serial.print(millis());
+   Serial.print(" left  green = ");
+   int  left_data=pulseIn( LEFT_sensorOut ,LOW);       //here  we wait until "out" go LOW, we start measuring the 
+   Serial.println(left_data);
+    if(right_data<8 && left_data>8 ){
+      right();
     }
-    else
-    {
-      object_evation_timer = millis();
-      Serial.print(" heheh ");
-      Serial.print(object_evation_timer);
-
-      distance = ultrasonic_side.read();
-      if (distance == 0)
-      {
-        distance = 357;
-      }
-
-      Serial.println(distance);
-
-      while (distance > object_detection_distance + 30)
-      {
-        digitalWrite(LED_PIN, LOW);
-        sharp_right();
-        distance = ultrasonic_side.read();
-        if (distance == 0)
-        {
-          distance = 357;
-        }
-        Serial.println(distance);
-      }
-      delay(100); // to let it finish a bit more turning
-    }
-  }
-  left();
-}
-
-void loop()
-{
-
-  /* Get new sensor events with the readings */
-  sensors_event_t a, g, temp;
-  mpu.getEvent(&a, &g, &temp);
-
-
-  Serial.print(" Y: ");
-  Serial.print(a.acceleration.y);
-  int AccY=a.acceleration.y;
-  if(AccY>2){
-     Serial.print ("  UP" );
-  lookingUp - true;
-  }
-  else{
-     Serial.print("  DOWN ");
-  lookingUp - false;
-  }
-
-  if (digitalRead(LS) == HIGH && digitalRead(RS) == LOW)
-  {
-    if (digitalRead(MS) == LOW)
-    {
-      sharp_right();
-    }
-    else
-    {
-      right(); 
-    }
-  }
-
- if (digitalRead(LS) == HIGH && digitalRead(MS) == HIGH && digitalRead(RS) == HIGH)
-    {
-      forward();
-    }
- if (digitalRead(LS) == HIGH && digitalRead(MS) == LOW && digitalRead(RS) == HIGH)
-    {
-      forward();
-    }
-  if (digitalRead(LS) == LOW && digitalRead(RS) == HIGH)
-  {
-    if (digitalRead(MS) == LOW)
-    {
-     sharp_left();
-    }
-    else
-    {
-      left(); 
+    else if(right_data>8 && left_data<8 ){
+      left();
     }
 
   }
 
-  if (digitalRead(LS) == LOW && digitalRead(MS) == LOW && digitalRead(RS) == LOW)
-  {
-
-
-   // stop();
-    // 2. Read LGreeUn Photodiodes
-    digitalWrite(LS2, HIGH);
-    digitalWrite(LS3, HIGH);
-    LgreenFrequency = pulseIn(LOUT, LOW, 30000);
-    Serial.print("LG= ");
-    Serial.print(LgreenFrequency);
-    Serial.print("  ");
-
-    // 2. Read RGreen Photodiodes
-    digitalWrite(RS2, HIGH);
-    digitalWrite(RS3, HIGH);
-    RgreenFrequency = pulseIn(ROUT, LOW, 30000);
-    Serial.print("RG= ");
-    Serial.print(RgreenFrequency);
-    Serial.print("  ");
-
-    if (LgreenFrequency < 9 && RgreenFrequency > 9)
-    {
-     Serial.print("right");
-     right();
-
-    }
-    else if (LgreenFrequency  > 9 && RgreenFrequency < 9)
-    {
-     Serial.print("left");
-     left();
-
-    }
-     else if (LgreenFrequency  < 9 && RgreenFrequency < 9)
-    {
-     Serial.print("forward");
-     forward();
-     
-    }
-/*
-      else if (LgreenFrequency  > 10 && RgreenFrequency > 10)
-    {
-     Serial.println("spin");
-     spin();
-     delay(800);
-
-    }
-  */
+  else {
+    // stop();
   }
 
-
-    Serial.print(" ");
-    Serial.print(digitalRead(LS));
-    Serial.print(" ");
-    Serial.print(digitalRead(MS));
-    Serial.print(" ");
-    Serial.print(digitalRead(RS));
-    Serial.println(" ");
-/*  
-    Serial.print(leftSpeed);
-    Serial.print(" ");
-    Serial.println(rightSpeed); 
-  */
-
-//put temporary code here:
-//---------------------------
-
-//---------------------------
+ //  hardright();
 
   unsigned long currentMillis = millis();
-  if(isOn == false){
+  if(ledState == LOW){
     if (currentMillis - previousMillis >= intervalOn) {
       previousMillis = currentMillis;
-        isOn = true;
+      ledState = HIGH;
+      digitalWrite(ledPin, ledState);
+
       analogWrite(ena, 0);
       analogWrite(enb, 0);
-     
+
     }
   }
   else{
     if (currentMillis - previousMillis >= intervalOff) {
       previousMillis = currentMillis;
-        isOn = false;
-
-       analogWrite(ena, leftSpeed);
-       analogWrite(enb, rightSpeed);
-
-       
+      ledState = LOW;
+      digitalWrite(ledPin, ledState);
+      
+       analogWrite(enb, leftSpeed);
+       analogWrite(ena, rightSpeed);
     }
-  
   }
-
 }
